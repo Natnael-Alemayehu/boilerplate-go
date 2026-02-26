@@ -1,0 +1,108 @@
+package config
+
+import (
+	"os"
+	"strconv"
+	"time"
+
+	"github.com/joho/godotenv"
+)
+
+type Config struct {
+	Port        string
+	Environment string
+	DatabaseURL string
+	RedisURL    string
+	JWT         JWTConfig
+	Argon2      Argon2Config
+	RateLimit   RateLimitConfig
+}
+
+type JWTConfig struct {
+	AccessSecret  string
+	RefreshSecret string
+	AccessTTL     time.Duration
+	RefreshTTL    time.Duration
+}
+
+type Argon2Config struct {
+	Memory      uint32
+	Iterations  uint32
+	Parallelism uint8
+	SaltLength  uint32
+	KeyLength   uint32
+}
+
+type RateLimitConfig struct {
+	Requests int
+	Window   time.Duration
+}
+
+func Load() (*Config, error) {
+	godotenv.Load()
+
+	cfg := &Config{
+		Port:        getEnv("APP_PORT", "8080"),
+		Environment: getEnv("ENVIRONMENT", "development"),
+		DatabaseURL: os.Getenv("DATABASE_URL"),
+		RedisURL:    os.Getenv("REDIS_URL"),
+		JWT: JWTConfig{
+			AccessSecret:  getEnv("JWT_ACCESS_SECRET", "default-access-secret-change-in-production"),
+			RefreshSecret: getEnv("JWT_REFRESH_SECRET", "default-refresh-secret-change-in-production"),
+			AccessTTL:     parseDuration(getEnv("JWT_ACCESS_TTL", "15m"), 15*time.Minute),
+			RefreshTTL:    parseDuration(getEnv("JWT_REFRESH_TTL", "168h"), 168*time.Hour),
+		},
+		Argon2: Argon2Config{
+			Memory:      parseUint32(getEnv("ARGON2_MEMORY", "65536"), 65536),
+			Iterations:  parseUint32(getEnv("ARGON2_ITERATIONS", "3"), 3),
+			Parallelism: parseUint8(getEnv("ARGON2_PARALLELISM", "2"), 2),
+			SaltLength:  parseUint32(getEnv("ARGON2_SALT_LENGTH", "16"), 16),
+			KeyLength:   parseUint32(getEnv("ARGON2_KEY_LENGTH", "32"), 32),
+		},
+		RateLimit: RateLimitConfig{
+			Requests: parseInt(getEnv("RATE_LIMIT_REQUESTS", "100"), 100),
+			Window:   parseDuration(getEnv("RATE_LIMIT_WINDOW", "1m"), time.Minute),
+		},
+	}
+
+	return cfg, nil
+}
+
+func (c *Config) IsDevelopment() bool {
+	return c.Environment == "development"
+}
+
+func getEnv(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
+}
+
+func parseInt(s string, defaultValue int) int {
+	if v, err := strconv.Atoi(s); err == nil {
+		return v
+	}
+	return defaultValue
+}
+
+func parseUint32(s string, defaultValue uint32) uint32 {
+	if v, err := strconv.ParseUint(s, 10, 32); err == nil {
+		return uint32(v)
+	}
+	return defaultValue
+}
+
+func parseUint8(s string, defaultValue uint8) uint8 {
+	if v, err := strconv.ParseUint(s, 10, 8); err == nil {
+		return uint8(v)
+	}
+	return defaultValue
+}
+
+func parseDuration(s string, defaultValue time.Duration) time.Duration {
+	if d, err := time.ParseDuration(s); err == nil {
+		return d
+	}
+	return defaultValue
+}
