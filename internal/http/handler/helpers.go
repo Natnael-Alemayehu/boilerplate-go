@@ -9,7 +9,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/nate/go-boilerplate/internal/domain"
 	apperrors "github.com/nate/go-boilerplate/internal/errors"
-	"github.com/nate/go-boilerplate/internal/service"
 )
 
 func decodeJSON(r *http.Request, v interface{}) error {
@@ -60,11 +59,22 @@ func parseListOptions(r *http.Request) domain.ListOptions {
 }
 
 func parseNoteListOptions(r *http.Request) domain.NoteListOptions {
-	opts := domain.NoteListOptions{
+	return domain.NoteListOptions{
 		ListOptions: parseListOptions(r),
 		WithDeleted: parseBoolQueryParam(r, "with_deleted"),
 	}
-	return opts
+}
+
+func badRequest(msg string) error {
+	return apperrors.BadRequest(msg)
+}
+
+func unauthorized(msg string) error {
+	return apperrors.Unauthorized(msg)
+}
+
+func validationError(msg string) error {
+	return apperrors.Validation(msg)
 }
 
 func toUserResponse(u *domain.User) *UserResponse {
@@ -73,14 +83,6 @@ func toUserResponse(u *domain.User) *UserResponse {
 		Email:     u.Email,
 		Role:      string(u.Role),
 		CreatedAt: u.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
-	}
-}
-
-func toTokenResponse(t *service.AuthTokens) *TokenResponse {
-	return &TokenResponse{
-		AccessToken:  t.AccessToken,
-		RefreshToken: t.RefreshToken,
-		ExpiresIn:    t.ExpiresIn,
 	}
 }
 
@@ -99,16 +101,4 @@ func toNoteResponse(n *domain.Note) *NoteResponse {
 		UpdatedAt: n.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		DeletedAt: deletedAt,
 	}
-}
-
-func badRequest(msg string) error {
-	return apperrors.BadRequest(msg)
-}
-
-func unauthorized(msg string) error {
-	return apperrors.Unauthorized(msg)
-}
-
-func validationError(msg string) error {
-	return apperrors.Validation(msg)
 }
