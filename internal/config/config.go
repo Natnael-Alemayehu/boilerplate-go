@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"strconv"
 	"time"
@@ -41,10 +42,12 @@ type RateLimitConfig struct {
 }
 
 func Load() (*Config, error) {
-	godotenv.Load()
+	if err := godotenv.Load(); err != nil && !os.IsNotExist(err) {
+		return nil, fmt.Errorf("error loading .env file: %w", err)
+	}
 
 	cfg := &Config{
-		Port:        getEnv("APP_PORT", "8080"),
+		Port:        getEnv("PORT", "8080"),
 		Environment: getEnv("ENVIRONMENT", "development"),
 		DatabaseURL: os.Getenv("DATABASE_URL"),
 		RedisURL:    os.Getenv("REDIS_URL"),
@@ -69,11 +72,25 @@ func Load() (*Config, error) {
 		},
 	}
 
+	if err := cfg.validate(); err != nil {
+		return nil, err
+	}
+
 	return cfg, nil
 }
 
 func (c *Config) IsDevelopment() bool {
 	return c.Environment == "development"
+}
+
+func (c *Config) validate() error {
+	if c.DatabaseURL == "" {
+		return fmt.Errorf("DATABASE_URL environment variable is required")
+	}
+	if c.RedisURL == "" {
+		return fmt.Errorf("REDIS_URL environment variable is required")
+	}
+	return nil
 }
 
 func getEnv(key, defaultValue string) string {

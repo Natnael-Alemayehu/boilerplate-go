@@ -6,10 +6,14 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	"github.com/go-redis/redis/v8"
+	"github.com/jackc/pgx/v5/pgxpool"
+	_ "github.com/nate/go-boilerplate/docs"
 	"github.com/nate/go-boilerplate/internal/http/handler"
 	httpmiddleware "github.com/nate/go-boilerplate/internal/http/middleware"
 	"github.com/nate/go-boilerplate/internal/service"
 	"github.com/nate/go-boilerplate/pkg/jwt"
+	httpSwagger "github.com/swaggo/http-swagger"
 )
 
 type Router struct {
@@ -22,6 +26,8 @@ func NewRouter(
 	noteService *service.NoteService,
 	jwtManager *jwt.Manager,
 	rateLimiter *httpmiddleware.RateLimiter,
+	db *pgxpool.Pool,
+	redisClient redis.Cmdable,
 ) *Router {
 	r := chi.NewRouter()
 
@@ -42,8 +48,10 @@ func NewRouter(
 	authHandler := handler.NewAuthHandler(authService)
 	userHandler := handler.NewUserHandler(userService)
 	noteHandler := handler.NewNoteHandler(noteService)
+	healthHandler := handler.NewHealthHandler(db, redisClient)
 
 	r.Route("/api/v1", func(r chi.Router) {
+		// Public routes
 		r.Group(func(r chi.Router) {
 			r.Post("/register", authHandler.Register)
 			r.Post("/login", authHandler.Login)
@@ -51,19 +59,31 @@ func NewRouter(
 			r.Post("/logout", authHandler.Logout)
 		})
 
+		// Authenticated routes - auth
 		r.Group(func(r chi.Router) {
 			r.Use(httpmiddleware.Auth(jwtManager))
 			r.Post("/logout-all", authHandler.LogoutAll)
 		})
 
+		// Authenticated routes - user profile
+		r.Group(func(r chi.Router) {
+			r.Use(httpmiddleware.Auth(jwtManager))
+
+			r.Get("/users/me", userHandler.GetMe)
+			r.Put("/users/me", userHandler.UpdateProfile)
+		})
+
+		// Admin routes - user management
 		r.Group(func(r chi.Router) {
 			r.Use(httpmiddleware.Auth(jwtManager))
 			r.Use(httpmiddleware.Authorize("admin"))
 
 			r.Get("/users", userHandler.List)
+			r.Get("/users/{id}", userHandler.Get)
 			r.Delete("/users/{id}", userHandler.Delete)
 		})
 
+		// Authenticated routes - notes
 		r.Group(func(r chi.Router) {
 			r.Use(httpmiddleware.Auth(jwtManager))
 
@@ -76,10 +96,11 @@ func NewRouter(
 		})
 	})
 
-	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
-	})
+	r.Get("/health", healthHandler.Health)
+
+	r.Get("/swagger/*", httpSwagger.Handler(
+		httpSwagger.URL("/swagger/doc.json"),
+	))
 
 	return &Router{r}
 }

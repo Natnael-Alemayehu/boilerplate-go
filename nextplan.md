@@ -19,31 +19,38 @@ This plan outlines the steps to make this Go boilerplate production-ready, inclu
 
 ---
 
-## Phase 2: API Documentation - PRIORITY (1-2 days)
+## Phase 2: API Documentation - PRIORITY (1-2 days) ✅ COMPLETED
 
-### 2.1 Setup Swagger Dependencies
-- Add `github.com/swaggo/swag/v2`
-- Add `github.com/swaggo/http-swagger/v2`
+### 2.1 Setup Swagger Dependencies ✅
+- Add `github.com/swaggo/swag`
+- Add `github.com/swaggo/http-swagger`
 
-### 2.2 Add Swagger Annotations
+### 2.2 Add Swagger Annotations ✅
 
-| File | Endpoints to Document |
-|------|----------------------|
-| `auth_handler.go` | Register, Login, Refresh, Logout, LogoutAll |
-| `user_handler.go` | List, Delete |
-| `note_handler.go` | List, Create, Get, Update, Delete, Restore |
+| File | Endpoints to Document | Status |
+|------|----------------------|--------|
+| `auth_handler.go` | Register, Login, Refresh, Logout, LogoutAll | ✅ |
+| `user_handler.go` | GetMe, UpdateProfile, List, Get, Delete | ✅ |
+| `note_handler.go` | List, Create, Get, Update, Delete, Restore | ✅ |
+| `health_handler.go` | Health | ✅ |
 
-### 2.3 Swagger Configuration
-- Create `docs/` package with generated swagger files
-- Add swagger route to router at `/swagger/*`
-- Configure swagger with proper security schemes (Bearer JWT)
+### 2.3 Swagger Configuration ✅
+- Created `docs/` package with generated swagger files
+- Added swagger route to router at `/swagger/*`
+- Configured swagger with proper security schemes (Bearer JWT)
 
-### 2.4 Update Makefile
+### 2.4 Update Makefile ✅
 
 ```makefile
 swagger: ## Generate swagger documentation
-	swag init -g cmd/api/main.go -o ./docs --packages internal/http/handler
+	swag init -g cmd/api/main.go -o ./docs --parseInternal --parseDependency --parseDepth 2
 ```
+
+### 2.5 Additional Improvements ✅
+- Added enhanced health check handler with DB/Redis connectivity checks
+- Added user profile endpoints (GET/PUT /users/me)
+- Added admin endpoint to get user by ID (GET /users/{id})
+- Added `UpdatedAt` field to UserResponse
 
 ---
 

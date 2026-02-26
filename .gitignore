@@ -1,14 +1,31 @@
+# Binaries
 bin/
 /api
+
+# Keys (never commit)
 keys/
 *.pem
 
+# Environment files
 .env
-coverage.out
+.env.local
+.env.production
 
+# Test coverage
+coverage.out
+coverage.html
+
+# Air temp directory
+tmp/
+
+# IDE
 .idea/
 .vscode/
 *.swp
 *.swo
 
+# OS
 .DS_Store
+
+# Logs
+*.log

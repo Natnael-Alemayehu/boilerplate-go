@@ -84,6 +84,7 @@ func toUserResponse(u *domain.User) *UserResponse {
 		Phone:     u.Phone,
 		Role:      string(u.Role),
 		CreatedAt: u.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		UpdatedAt: u.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	}
 }
 

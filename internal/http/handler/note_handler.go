@@ -18,33 +18,47 @@ func NewNoteHandler(noteService *service.NoteService) *NoteHandler {
 }
 
 type NoteResponse struct {
-	ID        string  `json:"id"`
-	UserID    string  `json:"user_id"`
-	Title     string  `json:"title"`
-	Content   string  `json:"content"`
-	CreatedAt string  `json:"created_at"`
-	UpdatedAt string  `json:"updated_at"`
-	DeletedAt *string `json:"deleted_at,omitempty"`
+	ID        string  `json:"id" example:"550e8400-e29b-41d4-a716-446655440000"`
+	UserID    string  `json:"user_id" example:"550e8400-e29b-41d4-a716-446655440001"`
+	Title     string  `json:"title" example:"My Note"`
+	Content   string  `json:"content" example:"This is the content of my note"`
+	CreatedAt string  `json:"created_at" example:"2024-01-15T10:30:00Z"`
+	UpdatedAt string  `json:"updated_at" example:"2024-01-15T10:30:00Z"`
+	DeletedAt *string `json:"deleted_at,omitempty" example:"2024-01-15T10:30:00Z"`
 }
 
 type NoteListResponse struct {
 	Notes      []NoteResponse `json:"notes"`
-	Total      int64          `json:"total"`
-	Page       int            `json:"page"`
-	PerPage    int            `json:"per_page"`
-	TotalPages int            `json:"total_pages"`
+	Total      int64          `json:"total" example:"42"`
+	Page       int            `json:"page" example:"1"`
+	PerPage    int            `json:"per_page" example:"20"`
+	TotalPages int            `json:"total_pages" example:"3"`
 }
 
 type CreateNoteRequest struct {
-	Title   string `json:"title" validate:"required,min=1,max=255"`
-	Content string `json:"content" validate:"max=10000"`
+	Title   string `json:"title" validate:"required,min=1,max=255" example:"My New Note"`
+	Content string `json:"content" validate:"max=10000" example:"This is the content of my new note"`
 }
 
 type UpdateNoteRequest struct {
-	Title   string `json:"title" validate:"required,min=1,max=255"`
-	Content string `json:"content" validate:"max=10000"`
+	Title   string `json:"title" validate:"required,min=1,max=255" example:"Updated Note Title"`
+	Content string `json:"content" validate:"max=10000" example:"This is the updated content"`
 }
 
+// ListNotes godoc
+// @Summary List user's notes
+// @Description Get a paginated list of notes belonging to the authenticated user. Supports soft-deleted notes with with_deleted parameter.
+// @Tags notes
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param page query int false "Page number" minimum(1) default(1)
+// @Param per_page query int false "Items per page" minimum(1) maximum(100) default(20)
+// @Param with_deleted query bool false "Include soft-deleted notes" default(false)
+// @Success 200 {object} NoteListResponse "List of notes"
+// @Failure 401 {object} response.ErrorResponse "Authentication required"
+// @Failure 500 {object} response.ErrorResponse "Internal server error"
+// @Router /api/v1/notes [get]
 func (h *NoteHandler) List(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
@@ -74,6 +88,20 @@ func (h *NoteHandler) List(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// GetNote godoc
+// @Summary Get a note by ID
+// @Description Retrieve a specific note by its ID. User must own the note.
+// @Tags notes
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path string true "Note ID" format(uuid)
+// @Success 200 {object} NoteResponse "Note details"
+// @Failure 400 {object} response.ErrorResponse "Invalid note ID format"
+// @Failure 401 {object} response.ErrorResponse "Authentication required"
+// @Failure 404 {object} response.ErrorResponse "Note not found"
+// @Failure 500 {object} response.ErrorResponse "Internal server error"
+// @Router /api/v1/notes/{id} [get]
 func (h *NoteHandler) Get(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
@@ -96,6 +124,19 @@ func (h *NoteHandler) Get(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusOK, toNoteResponse(note))
 }
 
+// CreateNote godoc
+// @Summary Create a new note
+// @Description Create a new note for the authenticated user.
+// @Tags notes
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param request body CreateNoteRequest true "Note details"
+// @Success 201 {object} NoteResponse "Note created successfully"
+// @Failure 400 {object} response.ErrorResponse "Invalid request body or validation error"
+// @Failure 401 {object} response.ErrorResponse "Authentication required"
+// @Failure 500 {object} response.ErrorResponse "Internal server error"
+// @Router /api/v1/notes [post]
 func (h *NoteHandler) Create(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
@@ -127,6 +168,21 @@ func (h *NoteHandler) Create(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusCreated, toNoteResponse(note))
 }
 
+// UpdateNote godoc
+// @Summary Update a note
+// @Description Update an existing note. User must own the note.
+// @Tags notes
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path string true "Note ID" format(uuid)
+// @Param request body UpdateNoteRequest true "Updated note details"
+// @Success 200 {object} NoteResponse "Note updated successfully"
+// @Failure 400 {object} response.ErrorResponse "Invalid request body, note ID, or validation error"
+// @Failure 401 {object} response.ErrorResponse "Authentication required"
+// @Failure 404 {object} response.ErrorResponse "Note not found"
+// @Failure 500 {object} response.ErrorResponse "Internal server error"
+// @Router /api/v1/notes/{id} [put]
 func (h *NoteHandler) Update(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
@@ -165,6 +221,20 @@ func (h *NoteHandler) Update(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusOK, toNoteResponse(note))
 }
 
+// DeleteNote godoc
+// @Summary Soft delete a note
+// @Description Soft delete a note (move to trash). User must own the note.
+// @Tags notes
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path string true "Note ID" format(uuid)
+// @Success 204 "Note deleted successfully"
+// @Failure 400 {object} response.ErrorResponse "Invalid note ID format"
+// @Failure 401 {object} response.ErrorResponse "Authentication required"
+// @Failure 404 {object} response.ErrorResponse "Note not found"
+// @Failure 500 {object} response.ErrorResponse "Internal server error"
+// @Router /api/v1/notes/{id} [delete]
 func (h *NoteHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
@@ -186,6 +256,20 @@ func (h *NoteHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// RestoreNote godoc
+// @Summary Restore a soft-deleted note
+// @Description Restore a soft-deleted note from trash. User must own the note.
+// @Tags notes
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path string true "Note ID" format(uuid)
+// @Success 204 "Note restored successfully"
+// @Failure 400 {object} response.ErrorResponse "Invalid note ID format"
+// @Failure 401 {object} response.ErrorResponse "Authentication required"
+// @Failure 404 {object} response.ErrorResponse "Note not found or not deleted"
+// @Failure 500 {object} response.ErrorResponse "Internal server error"
+// @Router /api/v1/notes/{id}/restore [post]
 func (h *NoteHandler) Restore(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {

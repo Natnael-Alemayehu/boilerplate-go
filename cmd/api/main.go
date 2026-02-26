@@ -1,3 +1,27 @@
+// Go Boilerplate API
+//
+// A production-ready Go REST API boilerplate with authentication, notes, and user management.
+// Features include JWT authentication, rate limiting, soft deletes, and Redis-based token storage.
+//
+//	Schemes: http, https
+//	Host: localhost:8080
+//	BasePath: /api/v1
+//	Version: 1.0.0
+//
+//	Consumes:
+//	- application/json
+//
+//	Produces:
+//	- application/json
+//
+//	SecurityDefinitions:
+//	BearerAuth:
+//	  type: apiKey
+//	  name: Authorization
+//	  in: header
+//	  description: Bearer token authentication
+//
+// swagger:meta
 package main
 
 import (
@@ -12,6 +36,7 @@ import (
 
 	"github.com/go-redis/redis/v8"
 	"github.com/jackc/pgx/v5/pgxpool"
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/nate/go-boilerplate/internal/config"
 	apphttp "github.com/nate/go-boilerplate/internal/http"
 	httpmiddleware "github.com/nate/go-boilerplate/internal/http/middleware"
@@ -23,6 +48,25 @@ import (
 	"github.com/pressly/goose/v3"
 )
 
+// @title Go Boilerplate API
+// @version 1.0
+// @description A production-ready Go REST API boilerplate with authentication, notes, and user management.
+// @description Features include JWT authentication, rate limiting, soft deletes, and Redis-based token storage.
+
+// @contact.name API Support
+// @contact.url https://github.com/nate/go-boilerplate
+// @contact.email support@example.com
+
+// @license.name MIT
+// @license.url https://opensource.org/licenses/MIT
+
+// @host localhost:8080
+// @BasePath /api/v1
+
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description Type "Bearer" followed by a space and JWT token.
 func main() {
 	cfg, err := config.Load()
 	if err != nil {
@@ -87,7 +131,7 @@ func main() {
 
 	rateLimiter := httpmiddleware.NewRateLimiter(rateLimitRepo, cfg.RateLimit.Requests, int64(cfg.RateLimit.Window.Seconds()))
 
-	router := apphttp.NewRouter(authService, userService, noteService, jwtManager, rateLimiter)
+	router := apphttp.NewRouter(authService, userService, noteService, jwtManager, rateLimiter, pool, redisClient)
 
 	srv := &http.Server{
 		Addr:         ":" + cfg.Port,
