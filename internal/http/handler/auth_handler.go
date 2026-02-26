@@ -16,13 +16,14 @@ func NewAuthHandler(authService *service.AuthService) *AuthHandler {
 }
 
 type RegisterRequest struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	Email    *string `json:"email"`
+	Phone    *string `json:"phone"`
+	Password string  `json:"password"`
 }
 
 type LoginRequest struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	Identifier string `json:"identifier"`
+	Password   string `json:"password"`
 }
 
 type RefreshRequest struct {
@@ -41,13 +42,19 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Email == "" || req.Password == "" {
-		middleware.RespondWithError(w, badRequest("email and password are required"))
+	if req.Email == nil && req.Phone == nil {
+		middleware.RespondWithError(w, validationError("email or phone is required"))
+		return
+	}
+
+	if req.Password == "" {
+		middleware.RespondWithError(w, validationError("password is required"))
 		return
 	}
 
 	result, err := h.authService.Register(r.Context(), service.RegisterInput{
 		Email:    req.Email,
+		Phone:    req.Phone,
 		Password: req.Password,
 	})
 	if err != nil {
@@ -68,14 +75,14 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Email == "" || req.Password == "" {
-		middleware.RespondWithError(w, badRequest("email and password are required"))
+	if req.Identifier == "" || req.Password == "" {
+		middleware.RespondWithError(w, validationError("identifier and password are required"))
 		return
 	}
 
 	result, err := h.authService.Login(r.Context(), service.LoginInput{
-		Email:    req.Email,
-		Password: req.Password,
+		Identifier: req.Identifier,
+		Password:   req.Password,
 	})
 	if err != nil {
 		middleware.RespondWithError(w, err)

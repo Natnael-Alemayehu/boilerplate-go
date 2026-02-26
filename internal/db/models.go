@@ -21,7 +21,8 @@ type Note struct {
 
 type User struct {
 	ID           uuid.UUID          `json:"id"`
-	Email        string             `json:"email"`
+	Email        *string            `json:"email"`
+	Phone        *string            `json:"phone"`
 	PasswordHash string             `json:"password_hash"`
 	Role         string             `json:"role"`
 	CreatedAt    pgtype.Timestamptz `json:"created_at"`

@@ -10,6 +10,8 @@ import (
 type UserRepository interface {
 	GetByID(ctx context.Context, id uuid.UUID) (*domain.User, error)
 	GetByEmail(ctx context.Context, email string) (*domain.User, error)
+	GetByPhone(ctx context.Context, phone string) (*domain.User, error)
+	GetByEmailOrPhone(ctx context.Context, identifier string) (*domain.User, error)
 	Create(ctx context.Context, user *domain.User) (*domain.User, error)
 	Update(ctx context.Context, user *domain.User) (*domain.User, error)
 	Delete(ctx context.Context, id uuid.UUID) error

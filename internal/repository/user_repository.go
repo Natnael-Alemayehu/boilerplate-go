@@ -32,7 +32,7 @@ func (r *userRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.Use
 }
 
 func (r *userRepository) GetByEmail(ctx context.Context, email string) (*domain.User, error) {
-	user, err := r.queries.GetUserByEmail(ctx, email)
+	user, err := r.queries.GetUserByEmail(ctx, &email)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, domainerrors.UserNotFound("user not found")
@@ -42,10 +42,33 @@ func (r *userRepository) GetByEmail(ctx context.Context, email string) (*domain.
 	return dbUserToDomain(&user), nil
 }
 
+func (r *userRepository) GetByPhone(ctx context.Context, phone string) (*domain.User, error) {
+	user, err := r.queries.GetUserByPhone(ctx, &phone)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, domainerrors.UserNotFound("user not found")
+		}
+		return nil, domainerrors.Internal("failed to get user by phone", err)
+	}
+	return dbUserToDomain(&user), nil
+}
+
+func (r *userRepository) GetByEmailOrPhone(ctx context.Context, identifier string) (*domain.User, error) {
+	user, err := r.queries.GetUserByEmailOrPhone(ctx, &identifier)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, domainerrors.UserNotFound("user not found")
+		}
+		return nil, domainerrors.Internal("failed to get user", err)
+	}
+	return dbUserToDomain(&user), nil
+}
+
 func (r *userRepository) Create(ctx context.Context, user *domain.User) (*domain.User, error) {
 	created, err := r.queries.CreateUser(ctx, db.CreateUserParams{
 		ID:           user.ID,
 		Email:        user.Email,
+		Phone:        user.Phone,
 		PasswordHash: user.PasswordHash,
 		Role:         string(user.Role),
 	})
@@ -59,6 +82,7 @@ func (r *userRepository) Update(ctx context.Context, user *domain.User) (*domain
 	updated, err := r.queries.UpdateUser(ctx, db.UpdateUserParams{
 		ID:           user.ID,
 		Email:        user.Email,
+		Phone:        user.Phone,
 		PasswordHash: user.PasswordHash,
 		Role:         string(user.Role),
 	})
@@ -118,6 +142,7 @@ func dbUserToDomain(u *db.User) *domain.User {
 	return &domain.User{
 		ID:           u.ID,
 		Email:        u.Email,
+		Phone:        u.Phone,
 		PasswordHash: u.PasswordHash,
 		Role:         domain.Role(u.Role),
 		CreatedAt:    u.CreatedAt.Time,

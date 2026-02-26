@@ -81,6 +81,7 @@ func toUserResponse(u *domain.User) *UserResponse {
 	return &UserResponse{
 		ID:        u.ID.String(),
 		Email:     u.Email,
+		Phone:     u.Phone,
 		Role:      string(u.Role),
 		CreatedAt: u.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	}

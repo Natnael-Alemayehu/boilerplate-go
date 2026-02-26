@@ -37,13 +37,14 @@ func NewAuthService(
 }
 
 type RegisterInput struct {
-	Email    string
+	Email    *string
+	Phone    *string
 	Password string
 }
 
 type LoginInput struct {
-	Email    string
-	Password string
+	Identifier string
+	Password   string
 }
 
 type AuthTokens struct {
@@ -58,9 +59,22 @@ type AuthResult struct {
 }
 
 func (s *AuthService) Register(ctx context.Context, input RegisterInput) (*AuthResult, error) {
-	existing, _ := s.userRepo.GetByEmail(ctx, input.Email)
-	if existing != nil {
-		return nil, domainerrors.EmailExists("email already registered")
+	if input.Email == nil && input.Phone == nil {
+		return nil, domainerrors.Validation("email or phone is required")
+	}
+
+	if input.Email != nil {
+		existing, _ := s.userRepo.GetByEmail(ctx, *input.Email)
+		if existing != nil {
+			return nil, domainerrors.EmailExists("email already registered")
+		}
+	}
+
+	if input.Phone != nil {
+		existing, _ := s.userRepo.GetByPhone(ctx, *input.Phone)
+		if existing != nil {
+			return nil, domainerrors.Conflict("phone already registered")
+		}
 	}
 
 	hashedPassword, err := s.passwordHasher.Hash(input.Password)
@@ -71,6 +85,7 @@ func (s *AuthService) Register(ctx context.Context, input RegisterInput) (*AuthR
 	user := &domain.User{
 		ID:           uuid.New(),
 		Email:        input.Email,
+		Phone:        input.Phone,
 		PasswordHash: hashedPassword,
 		Role:         domain.RoleUser,
 	}
@@ -92,14 +107,18 @@ func (s *AuthService) Register(ctx context.Context, input RegisterInput) (*AuthR
 }
 
 func (s *AuthService) Login(ctx context.Context, input LoginInput) (*AuthResult, error) {
-	user, err := s.userRepo.GetByEmail(ctx, input.Email)
+	if input.Identifier == "" {
+		return nil, domainerrors.Validation("identifier is required")
+	}
+
+	user, err := s.userRepo.GetByEmailOrPhone(ctx, input.Identifier)
 	if err != nil {
-		return nil, domainerrors.InvalidCredentials("invalid email or password")
+		return nil, domainerrors.InvalidCredentials("invalid credentials")
 	}
 
 	valid, err := s.passwordHasher.Verify(input.Password, user.PasswordHash)
 	if err != nil || !valid {
-		return nil, domainerrors.InvalidCredentials("invalid email or password")
+		return nil, domainerrors.InvalidCredentials("invalid credentials")
 	}
 
 	tokens, err := s.generateTokens(ctx, user)
@@ -150,7 +169,9 @@ func (s *AuthService) LogoutAll(ctx context.Context, userID uuid.UUID) error {
 }
 
 func (s *AuthService) generateTokens(ctx context.Context, user *domain.User) (*AuthTokens, error) {
-	accessToken, err := s.jwtManager.GenerateAccessToken(user.ID, user.Email, string(user.Role))
+	identifier := user.DisplayName()
+
+	accessToken, err := s.jwtManager.GenerateAccessToken(user.ID, identifier, string(user.Role))
 	if err != nil {
 		return nil, domainerrors.Internal("failed to generate access token", err)
 	}

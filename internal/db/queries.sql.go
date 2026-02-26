@@ -67,14 +67,15 @@ func (q *Queries) CreateNote(ctx context.Context, arg CreateNoteParams) (Note, e
 }
 
 const createUser = `-- name: CreateUser :one
-INSERT INTO users (id, email, password_hash, role)
-VALUES ($1, $2, $3, $4)
-RETURNING id, email, password_hash, role, created_at, updated_at
+INSERT INTO users (id, email, phone, password_hash, role)
+VALUES ($1, $2, $3, $4, $5)
+RETURNING id, email, phone, password_hash, role, created_at, updated_at
 `
 
 type CreateUserParams struct {
 	ID           uuid.UUID `json:"id"`
-	Email        string    `json:"email"`
+	Email        *string   `json:"email"`
+	Phone        *string   `json:"phone"`
 	PasswordHash string    `json:"password_hash"`
 	Role         string    `json:"role"`
 }
@@ -83,6 +84,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 	row := q.db.QueryRow(ctx, createUser,
 		arg.ID,
 		arg.Email,
+		arg.Phone,
 		arg.PasswordHash,
 		arg.Role,
 	)
@@ -90,6 +92,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 	err := row.Scan(
 		&i.ID,
 		&i.Email,
+		&i.Phone,
 		&i.PasswordHash,
 		&i.Role,
 		&i.CreatedAt,
@@ -176,17 +179,39 @@ func (q *Queries) GetNoteByIDWithDeleted(ctx context.Context, id uuid.UUID) (Not
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, email, password_hash, role, created_at, updated_at
+SELECT id, email, phone, password_hash, role, created_at, updated_at
 FROM users
 WHERE email = $1
 `
 
-func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
+func (q *Queries) GetUserByEmail(ctx context.Context, email *string) (User, error) {
 	row := q.db.QueryRow(ctx, getUserByEmail, email)
 	var i User
 	err := row.Scan(
 		&i.ID,
 		&i.Email,
+		&i.Phone,
+		&i.PasswordHash,
+		&i.Role,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getUserByEmailOrPhone = `-- name: GetUserByEmailOrPhone :one
+SELECT id, email, phone, password_hash, role, created_at, updated_at
+FROM users
+WHERE email = $1 OR phone = $1
+`
+
+func (q *Queries) GetUserByEmailOrPhone(ctx context.Context, email *string) (User, error) {
+	row := q.db.QueryRow(ctx, getUserByEmailOrPhone, email)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.Phone,
 		&i.PasswordHash,
 		&i.Role,
 		&i.CreatedAt,
@@ -196,7 +221,7 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, email, password_hash, role, created_at, updated_at
+SELECT id, email, phone, password_hash, role, created_at, updated_at
 FROM users
 WHERE id = $1
 `
@@ -207,6 +232,28 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
 	err := row.Scan(
 		&i.ID,
 		&i.Email,
+		&i.Phone,
+		&i.PasswordHash,
+		&i.Role,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getUserByPhone = `-- name: GetUserByPhone :one
+SELECT id, email, phone, password_hash, role, created_at, updated_at
+FROM users
+WHERE phone = $1
+`
+
+func (q *Queries) GetUserByPhone(ctx context.Context, phone *string) (User, error) {
+	row := q.db.QueryRow(ctx, getUserByPhone, phone)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.Phone,
 		&i.PasswordHash,
 		&i.Role,
 		&i.CreatedAt,
@@ -309,7 +356,7 @@ func (q *Queries) ListNotesByUserIDWithDeleted(ctx context.Context, arg ListNote
 }
 
 const listUsers = `-- name: ListUsers :many
-SELECT id, email, password_hash, role, created_at, updated_at
+SELECT id, email, phone, password_hash, role, created_at, updated_at
 FROM users
 ORDER BY created_at DESC
 LIMIT $1 OFFSET $2
@@ -332,6 +379,7 @@ func (q *Queries) ListUsers(ctx context.Context, arg ListUsersParams) ([]User, e
 		if err := rows.Scan(
 			&i.ID,
 			&i.Email,
+			&i.Phone,
 			&i.PasswordHash,
 			&i.Role,
 			&i.CreatedAt,
@@ -415,14 +463,15 @@ func (q *Queries) UpdateNote(ctx context.Context, arg UpdateNoteParams) (Note, e
 
 const updateUser = `-- name: UpdateUser :one
 UPDATE users
-SET email = $2, password_hash = $3, role = $4, updated_at = NOW()
+SET email = $2, phone = $3, password_hash = $4, role = $5, updated_at = NOW()
 WHERE id = $1
-RETURNING id, email, password_hash, role, created_at, updated_at
+RETURNING id, email, phone, password_hash, role, created_at, updated_at
 `
 
 type UpdateUserParams struct {
 	ID           uuid.UUID `json:"id"`
-	Email        string    `json:"email"`
+	Email        *string   `json:"email"`
+	Phone        *string   `json:"phone"`
 	PasswordHash string    `json:"password_hash"`
 	Role         string    `json:"role"`
 }
@@ -431,6 +480,7 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, e
 	row := q.db.QueryRow(ctx, updateUser,
 		arg.ID,
 		arg.Email,
+		arg.Phone,
 		arg.PasswordHash,
 		arg.Role,
 	)
@@ -438,6 +488,7 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, e
 	err := row.Scan(
 		&i.ID,
 		&i.Email,
+		&i.Phone,
 		&i.PasswordHash,
 		&i.Role,
 		&i.CreatedAt,

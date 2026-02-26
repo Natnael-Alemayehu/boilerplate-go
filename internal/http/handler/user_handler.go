@@ -16,10 +16,11 @@ func NewUserHandler(userService *service.UserService) *UserHandler {
 }
 
 type UserResponse struct {
-	ID        string `json:"id"`
-	Email     string `json:"email"`
-	Role      string `json:"role"`
-	CreatedAt string `json:"created_at"`
+	ID        string  `json:"id"`
+	Email     *string `json:"email,omitempty"`
+	Phone     *string `json:"phone,omitempty"`
+	Role      string  `json:"role"`
+	CreatedAt string  `json:"created_at"`
 }
 
 type UserListResponse struct {

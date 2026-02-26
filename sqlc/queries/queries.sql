@@ -1,29 +1,39 @@
 -- name: GetUserByID :one
-SELECT id, email, password_hash, role, created_at, updated_at
+SELECT id, email, phone, password_hash, role, created_at, updated_at
 FROM users
 WHERE id = $1;
 
 -- name: GetUserByEmail :one
-SELECT id, email, password_hash, role, created_at, updated_at
+SELECT id, email, phone, password_hash, role, created_at, updated_at
 FROM users
 WHERE email = $1;
 
+-- name: GetUserByPhone :one
+SELECT id, email, phone, password_hash, role, created_at, updated_at
+FROM users
+WHERE phone = $1;
+
+-- name: GetUserByEmailOrPhone :one
+SELECT id, email, phone, password_hash, role, created_at, updated_at
+FROM users
+WHERE email = $1 OR phone = $1;
+
 -- name: CreateUser :one
-INSERT INTO users (id, email, password_hash, role)
-VALUES ($1, $2, $3, $4)
-RETURNING id, email, password_hash, role, created_at, updated_at;
+INSERT INTO users (id, email, phone, password_hash, role)
+VALUES ($1, $2, $3, $4, $5)
+RETURNING id, email, phone, password_hash, role, created_at, updated_at;
 
 -- name: UpdateUser :one
 UPDATE users
-SET email = $2, password_hash = $3, role = $4, updated_at = NOW()
+SET email = $2, phone = $3, password_hash = $4, role = $5, updated_at = NOW()
 WHERE id = $1
-RETURNING id, email, password_hash, role, created_at, updated_at;
+RETURNING id, email, phone, password_hash, role, created_at, updated_at;
 
 -- name: DeleteUser :exec
 DELETE FROM users WHERE id = $1;
 
 -- name: ListUsers :many
-SELECT id, email, password_hash, role, created_at, updated_at
+SELECT id, email, phone, password_hash, role, created_at, updated_at
 FROM users
 ORDER BY created_at DESC
 LIMIT $1 OFFSET $2;

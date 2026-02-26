@@ -19,9 +19,20 @@ func (r Role) IsValid() bool {
 
 type User struct {
 	ID           uuid.UUID
-	Email        string
+	Email        *string
+	Phone        *string
 	PasswordHash string
 	Role         Role
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
+}
+
+func (u *User) DisplayName() string {
+	if u.Email != nil {
+		return *u.Email
+	}
+	if u.Phone != nil {
+		return *u.Phone
+	}
+	return u.ID.String()
 }

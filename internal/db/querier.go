@@ -19,8 +19,10 @@ type Querier interface {
 	GetNoteByID(ctx context.Context, id uuid.UUID) (Note, error)
 	GetNoteByIDAndUserID(ctx context.Context, arg GetNoteByIDAndUserIDParams) (Note, error)
 	GetNoteByIDWithDeleted(ctx context.Context, id uuid.UUID) (Note, error)
-	GetUserByEmail(ctx context.Context, email string) (User, error)
+	GetUserByEmail(ctx context.Context, email *string) (User, error)
+	GetUserByEmailOrPhone(ctx context.Context, email *string) (User, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (User, error)
+	GetUserByPhone(ctx context.Context, phone *string) (User, error)
 	HardDeleteNote(ctx context.Context, id uuid.UUID) error
 	ListNotesByUserID(ctx context.Context, arg ListNotesByUserIDParams) ([]Note, error)
 	ListNotesByUserIDWithDeleted(ctx context.Context, arg ListNotesByUserIDWithDeletedParams) ([]Note, error)
