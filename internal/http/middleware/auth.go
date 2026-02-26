@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	apperrors "github.com/nate/go-boilerplate/internal/errors"
 	"github.com/nate/go-boilerplate/pkg/jwt"
+	"github.com/nate/go-boilerplate/pkg/response"
 )
 
 type contextKey string
@@ -23,19 +24,19 @@ func Auth(jwtManager *jwt.Manager) func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			authHeader := r.Header.Get("Authorization")
 			if authHeader == "" {
-				respondWithError(w, apperrors.Unauthorized("missing authorization header"))
+				response.Error(w, apperrors.Unauthorized("missing authorization header"))
 				return
 			}
 
 			parts := strings.Split(authHeader, " ")
 			if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
-				respondWithError(w, apperrors.Unauthorized("invalid authorization header format"))
+				response.Error(w, apperrors.Unauthorized("invalid authorization header format"))
 				return
 			}
 
 			claims, err := jwtManager.ValidateAccessToken(parts[1])
 			if err != nil {
-				respondWithError(w, apperrors.InvalidToken("invalid or expired token"))
+				response.Error(w, apperrors.InvalidToken("invalid or expired token"))
 				return
 			}
 
@@ -68,7 +69,7 @@ func RequireAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, ok := GetUserID(r.Context())
 		if !ok {
-			respondWithError(w, apperrors.Unauthorized("authentication required"))
+			response.Error(w, apperrors.Unauthorized("authentication required"))
 			return
 		}
 		next.ServeHTTP(w, r)
@@ -80,7 +81,7 @@ func Authorize(roles ...string) func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			userRole, ok := GetRole(r.Context())
 			if !ok {
-				respondWithError(w, apperrors.Unauthorized("authentication required"))
+				response.Error(w, apperrors.Unauthorized("authentication required"))
 				return
 			}
 
@@ -91,7 +92,7 @@ func Authorize(roles ...string) func(http.Handler) http.Handler {
 				}
 			}
 
-			respondWithError(w, apperrors.Forbidden("insufficient permissions"))
+			response.Error(w, apperrors.Forbidden("insufficient permissions"))
 		})
 	}
 }

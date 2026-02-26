@@ -3,8 +3,8 @@ package handler
 import (
 	"net/http"
 
-	"github.com/nate/go-boilerplate/internal/http/middleware"
 	"github.com/nate/go-boilerplate/internal/service"
+	"github.com/nate/go-boilerplate/pkg/response"
 )
 
 type UserHandler struct {
@@ -36,7 +36,7 @@ func (h *UserHandler) List(w http.ResponseWriter, r *http.Request) {
 
 	result, err := h.userService.List(r.Context(), opts)
 	if err != nil {
-		middleware.RespondWithError(w, err)
+		response.Error(w, err)
 		return
 	}
 
@@ -45,7 +45,7 @@ func (h *UserHandler) List(w http.ResponseWriter, r *http.Request) {
 		users[i] = *toUserResponse(&u)
 	}
 
-	middleware.WriteJSON(w, http.StatusOK, UserListResponse{
+	response.JSON(w, http.StatusOK, UserListResponse{
 		Users:      users,
 		Total:      result.Total,
 		Page:       result.Page,
@@ -57,12 +57,12 @@ func (h *UserHandler) List(w http.ResponseWriter, r *http.Request) {
 func (h *UserHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	userID, err := parseUUIDParam(r, "id")
 	if err != nil {
-		middleware.RespondWithError(w, err)
+		response.Error(w, err)
 		return
 	}
 
 	if err := h.userService.Delete(r.Context(), userID); err != nil {
-		middleware.RespondWithError(w, err)
+		response.Error(w, err)
 		return
 	}
 

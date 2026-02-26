@@ -5,6 +5,7 @@ import (
 
 	"github.com/nate/go-boilerplate/internal/http/middleware"
 	"github.com/nate/go-boilerplate/internal/service"
+	"github.com/nate/go-boilerplate/pkg/response"
 )
 
 type NoteHandler struct {
@@ -46,7 +47,7 @@ type UpdateNoteRequest struct {
 func (h *NoteHandler) List(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
-		middleware.RespondWithError(w, unauthorized("authentication required"))
+		response.Error(w, unauthorized("authentication required"))
 		return
 	}
 
@@ -54,7 +55,7 @@ func (h *NoteHandler) List(w http.ResponseWriter, r *http.Request) {
 
 	result, err := h.noteService.ListByUserID(r.Context(), userID, opts)
 	if err != nil {
-		middleware.RespondWithError(w, err)
+		response.Error(w, err)
 		return
 	}
 
@@ -63,7 +64,7 @@ func (h *NoteHandler) List(w http.ResponseWriter, r *http.Request) {
 		notes[i] = *toNoteResponse(&n)
 	}
 
-	middleware.WriteJSON(w, http.StatusOK, NoteListResponse{
+	response.JSON(w, http.StatusOK, NoteListResponse{
 		Notes:      notes,
 		Total:      result.Total,
 		Page:       result.Page,
@@ -75,40 +76,40 @@ func (h *NoteHandler) List(w http.ResponseWriter, r *http.Request) {
 func (h *NoteHandler) Get(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
-		middleware.RespondWithError(w, unauthorized("authentication required"))
+		response.Error(w, unauthorized("authentication required"))
 		return
 	}
 
 	noteID, err := parseUUIDParam(r, "id")
 	if err != nil {
-		middleware.RespondWithError(w, err)
+		response.Error(w, err)
 		return
 	}
 
 	note, err := h.noteService.GetByIDAndUserID(r.Context(), noteID, userID)
 	if err != nil {
-		middleware.RespondWithError(w, err)
+		response.Error(w, err)
 		return
 	}
 
-	middleware.WriteJSON(w, http.StatusOK, toNoteResponse(note))
+	response.JSON(w, http.StatusOK, toNoteResponse(note))
 }
 
 func (h *NoteHandler) Create(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
-		middleware.RespondWithError(w, unauthorized("authentication required"))
+		response.Error(w, unauthorized("authentication required"))
 		return
 	}
 
 	var req CreateNoteRequest
 	if err := decodeJSON(r, &req); err != nil {
-		middleware.RespondWithError(w, err)
+		response.Error(w, err)
 		return
 	}
 
 	if req.Title == "" {
-		middleware.RespondWithError(w, validationError("title is required"))
+		response.Error(w, validationError("title is required"))
 		return
 	}
 
@@ -118,34 +119,34 @@ func (h *NoteHandler) Create(w http.ResponseWriter, r *http.Request) {
 		Content: req.Content,
 	})
 	if err != nil {
-		middleware.RespondWithError(w, err)
+		response.Error(w, err)
 		return
 	}
 
-	middleware.WriteJSON(w, http.StatusCreated, toNoteResponse(note))
+	response.JSON(w, http.StatusCreated, toNoteResponse(note))
 }
 
 func (h *NoteHandler) Update(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
-		middleware.RespondWithError(w, unauthorized("authentication required"))
+		response.Error(w, unauthorized("authentication required"))
 		return
 	}
 
 	noteID, err := parseUUIDParam(r, "id")
 	if err != nil {
-		middleware.RespondWithError(w, err)
+		response.Error(w, err)
 		return
 	}
 
 	var req UpdateNoteRequest
 	if err := decodeJSON(r, &req); err != nil {
-		middleware.RespondWithError(w, err)
+		response.Error(w, err)
 		return
 	}
 
 	if req.Title == "" {
-		middleware.RespondWithError(w, validationError("title is required"))
+		response.Error(w, validationError("title is required"))
 		return
 	}
 
@@ -156,28 +157,28 @@ func (h *NoteHandler) Update(w http.ResponseWriter, r *http.Request) {
 		Content: req.Content,
 	})
 	if err != nil {
-		middleware.RespondWithError(w, err)
+		response.Error(w, err)
 		return
 	}
 
-	middleware.WriteJSON(w, http.StatusOK, toNoteResponse(note))
+	response.JSON(w, http.StatusOK, toNoteResponse(note))
 }
 
 func (h *NoteHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
-		middleware.RespondWithError(w, unauthorized("authentication required"))
+		response.Error(w, unauthorized("authentication required"))
 		return
 	}
 
 	noteID, err := parseUUIDParam(r, "id")
 	if err != nil {
-		middleware.RespondWithError(w, err)
+		response.Error(w, err)
 		return
 	}
 
 	if err := h.noteService.SoftDelete(r.Context(), noteID, userID); err != nil {
-		middleware.RespondWithError(w, err)
+		response.Error(w, err)
 		return
 	}
 
@@ -187,18 +188,18 @@ func (h *NoteHandler) Delete(w http.ResponseWriter, r *http.Request) {
 func (h *NoteHandler) Restore(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
-		middleware.RespondWithError(w, unauthorized("authentication required"))
+		response.Error(w, unauthorized("authentication required"))
 		return
 	}
 
 	noteID, err := parseUUIDParam(r, "id")
 	if err != nil {
-		middleware.RespondWithError(w, err)
+		response.Error(w, err)
 		return
 	}
 
 	if err := h.noteService.Restore(r.Context(), noteID, userID); err != nil {
-		middleware.RespondWithError(w, err)
+		response.Error(w, err)
 		return
 	}
 

@@ -8,6 +8,7 @@ import (
 
 	apperrors "github.com/nate/go-boilerplate/internal/errors"
 	"github.com/nate/go-boilerplate/internal/repository"
+	"github.com/nate/go-boilerplate/pkg/response"
 )
 
 type RateLimiter struct {
@@ -49,7 +50,7 @@ func RateLimit(limiter *RateLimiter) func(http.Handler) http.Handler {
 
 			count, ttl, err := limiter.Check(r.Context(), key)
 			if err != nil {
-				respondWithError(w, apperrors.Internal("rate limit check failed", err))
+				response.Error(w, apperrors.Internal("rate limit check failed", err))
 				return
 			}
 
@@ -58,7 +59,7 @@ func RateLimit(limiter *RateLimiter) func(http.Handler) http.Handler {
 			w.Header().Set("X-RateLimit-Reset", strconv.FormatInt(ttl, 10))
 
 			if count > int64(limiter.Limit()) {
-				respondWithError(w, apperrors.RateLimited("rate limit exceeded"))
+				response.Error(w, apperrors.RateLimited("rate limit exceeded"))
 				return
 			}
 

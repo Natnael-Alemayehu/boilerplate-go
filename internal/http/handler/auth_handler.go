@@ -5,6 +5,7 @@ import (
 
 	"github.com/nate/go-boilerplate/internal/http/middleware"
 	"github.com/nate/go-boilerplate/internal/service"
+	"github.com/nate/go-boilerplate/pkg/response"
 )
 
 type AuthHandler struct {
@@ -38,17 +39,17 @@ type AuthResponse struct {
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var req RegisterRequest
 	if err := decodeJSON(r, &req); err != nil {
-		middleware.RespondWithError(w, err)
+		response.Error(w, err)
 		return
 	}
 
 	if req.Email == nil && req.Phone == nil {
-		middleware.RespondWithError(w, validationError("email or phone is required"))
+		response.Error(w, validationError("email or phone is required"))
 		return
 	}
 
 	if req.Password == "" {
-		middleware.RespondWithError(w, validationError("password is required"))
+		response.Error(w, validationError("password is required"))
 		return
 	}
 
@@ -58,11 +59,11 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		Password: req.Password,
 	})
 	if err != nil {
-		middleware.RespondWithError(w, err)
+		response.Error(w, err)
 		return
 	}
 
-	middleware.WriteJSON(w, http.StatusCreated, AuthResponse{
+	response.JSON(w, http.StatusCreated, AuthResponse{
 		User:  toUserResponse(result.User),
 		Token: toTokenResponse(result.Tokens),
 	})
@@ -71,12 +72,12 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var req LoginRequest
 	if err := decodeJSON(r, &req); err != nil {
-		middleware.RespondWithError(w, err)
+		response.Error(w, err)
 		return
 	}
 
 	if req.Identifier == "" || req.Password == "" {
-		middleware.RespondWithError(w, validationError("identifier and password are required"))
+		response.Error(w, validationError("identifier and password are required"))
 		return
 	}
 
@@ -85,11 +86,11 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		Password:   req.Password,
 	})
 	if err != nil {
-		middleware.RespondWithError(w, err)
+		response.Error(w, err)
 		return
 	}
 
-	middleware.WriteJSON(w, http.StatusOK, AuthResponse{
+	response.JSON(w, http.StatusOK, AuthResponse{
 		User:  toUserResponse(result.User),
 		Token: toTokenResponse(result.Tokens),
 	})
@@ -98,38 +99,38 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 	var req RefreshRequest
 	if err := decodeJSON(r, &req); err != nil {
-		middleware.RespondWithError(w, err)
+		response.Error(w, err)
 		return
 	}
 
 	if req.RefreshToken == "" {
-		middleware.RespondWithError(w, badRequest("refresh_token is required"))
+		response.Error(w, badRequest("refresh_token is required"))
 		return
 	}
 
 	tokens, err := h.authService.Refresh(r.Context(), req.RefreshToken)
 	if err != nil {
-		middleware.RespondWithError(w, err)
+		response.Error(w, err)
 		return
 	}
 
-	middleware.WriteJSON(w, http.StatusOK, toTokenResponse(tokens))
+	response.JSON(w, http.StatusOK, toTokenResponse(tokens))
 }
 
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	var req RefreshRequest
 	if err := decodeJSON(r, &req); err != nil {
-		middleware.RespondWithError(w, err)
+		response.Error(w, err)
 		return
 	}
 
 	if req.RefreshToken == "" {
-		middleware.RespondWithError(w, badRequest("refresh_token is required"))
+		response.Error(w, badRequest("refresh_token is required"))
 		return
 	}
 
 	if err := h.authService.Logout(r.Context(), req.RefreshToken); err != nil {
-		middleware.RespondWithError(w, err)
+		response.Error(w, err)
 		return
 	}
 
@@ -139,12 +140,12 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 func (h *AuthHandler) LogoutAll(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
-		middleware.RespondWithError(w, unauthorized("authentication required"))
+		response.Error(w, unauthorized("authentication required"))
 		return
 	}
 
 	if err := h.authService.LogoutAll(r.Context(), userID); err != nil {
-		middleware.RespondWithError(w, err)
+		response.Error(w, err)
 		return
 	}
 
