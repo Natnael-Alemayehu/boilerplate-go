@@ -48,7 +48,7 @@ func main() {
 	}
 
 	redisClient := redis.NewClient(&redis.Options{
-		Addr: parseRedisAddr(cfg.RedisURL),
+		Addr: cfg.RedisURL,
 	})
 	defer redisClient.Close()
 
@@ -131,13 +131,9 @@ func runMigrations(databaseURL string) error {
 		return fmt.Errorf("failed to set dialect: %w", err)
 	}
 
-	if err := goose.Up(db, "db/migrations"); err != nil {
+	if err := goose.Up(db, "migrations"); err != nil {
 		return fmt.Errorf("failed to run migrations: %w", err)
 	}
 
 	return nil
-}
-
-func parseRedisAddr(redisURL string) string {
-	return redisURL
 }
