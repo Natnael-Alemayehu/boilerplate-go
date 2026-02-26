@@ -6,6 +6,7 @@ import (
 	"github.com/nate/go-boilerplate/internal/http/middleware"
 	"github.com/nate/go-boilerplate/internal/service"
 	"github.com/nate/go-boilerplate/pkg/response"
+	"github.com/nate/go-boilerplate/pkg/validation"
 )
 
 type AuthHandler struct {
@@ -17,18 +18,18 @@ func NewAuthHandler(authService *service.AuthService) *AuthHandler {
 }
 
 type RegisterRequest struct {
-	Email    *string `json:"email"`
-	Phone    *string `json:"phone"`
-	Password string  `json:"password"`
+	Email    *string `json:"email" validate:"omitempty,email"`
+	Phone    *string `json:"phone" validate:"omitempty,phone"`
+	Password string  `json:"password" validate:"required,min=8"`
 }
 
 type LoginRequest struct {
-	Identifier string `json:"identifier"`
-	Password   string `json:"password"`
+	Identifier string `json:"identifier" validate:"required"`
+	Password   string `json:"password" validate:"required"`
 }
 
 type RefreshRequest struct {
-	RefreshToken string `json:"refresh_token"`
+	RefreshToken string `json:"refresh_token" validate:"required"`
 }
 
 type AuthResponse struct {
@@ -44,12 +45,14 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if req.Email == nil && req.Phone == nil {
-		response.Error(w, validationError("email or phone is required"))
+		response.JSON(w, http.StatusBadRequest, validation.ValidationErrors{
+			{Field: "email", Message: "email or phone is required"},
+		})
 		return
 	}
 
-	if req.Password == "" {
-		response.Error(w, validationError("password is required"))
+	if errs := validation.Validate(req); len(errs) > 0 {
+		response.JSON(w, http.StatusBadRequest, errs)
 		return
 	}
 
@@ -76,8 +79,8 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Identifier == "" || req.Password == "" {
-		response.Error(w, validationError("identifier and password are required"))
+	if errs := validation.Validate(req); len(errs) > 0 {
+		response.JSON(w, http.StatusBadRequest, errs)
 		return
 	}
 
@@ -103,8 +106,8 @@ func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.RefreshToken == "" {
-		response.Error(w, badRequest("refresh_token is required"))
+	if errs := validation.Validate(req); len(errs) > 0 {
+		response.JSON(w, http.StatusBadRequest, errs)
 		return
 	}
 
@@ -124,8 +127,8 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.RefreshToken == "" {
-		response.Error(w, badRequest("refresh_token is required"))
+	if errs := validation.Validate(req); len(errs) > 0 {
+		response.JSON(w, http.StatusBadRequest, errs)
 		return
 	}
 

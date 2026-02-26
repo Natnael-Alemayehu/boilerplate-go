@@ -6,6 +6,7 @@ import (
 	"github.com/nate/go-boilerplate/internal/http/middleware"
 	"github.com/nate/go-boilerplate/internal/service"
 	"github.com/nate/go-boilerplate/pkg/response"
+	"github.com/nate/go-boilerplate/pkg/validation"
 )
 
 type NoteHandler struct {
@@ -35,13 +36,13 @@ type NoteListResponse struct {
 }
 
 type CreateNoteRequest struct {
-	Title   string `json:"title"`
-	Content string `json:"content"`
+	Title   string `json:"title" validate:"required,min=1,max=255"`
+	Content string `json:"content" validate:"max=10000"`
 }
 
 type UpdateNoteRequest struct {
-	Title   string `json:"title"`
-	Content string `json:"content"`
+	Title   string `json:"title" validate:"required,min=1,max=255"`
+	Content string `json:"content" validate:"max=10000"`
 }
 
 func (h *NoteHandler) List(w http.ResponseWriter, r *http.Request) {
@@ -108,8 +109,8 @@ func (h *NoteHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Title == "" {
-		response.Error(w, validationError("title is required"))
+	if errs := validation.Validate(req); len(errs) > 0 {
+		response.JSON(w, http.StatusBadRequest, errs)
 		return
 	}
 
@@ -145,8 +146,8 @@ func (h *NoteHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Title == "" {
-		response.Error(w, validationError("title is required"))
+	if errs := validation.Validate(req); len(errs) > 0 {
+		response.JSON(w, http.StatusBadRequest, errs)
 		return
 	}
 

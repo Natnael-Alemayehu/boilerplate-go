@@ -19,6 +19,7 @@ import (
 	"github.com/nate/go-boilerplate/internal/service"
 	"github.com/nate/go-boilerplate/pkg/jwt"
 	"github.com/nate/go-boilerplate/pkg/password"
+	"github.com/nate/go-boilerplate/pkg/validation"
 	"github.com/pressly/goose/v3"
 )
 
@@ -27,6 +28,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
 	}
+
+	validation.Init()
 
 	ctx := context.Background()
 
