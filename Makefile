@@ -1,4 +1,4 @@
-.PHONY: build run test clean migrate-up migrate-down migrate-status sqlc-generate docker-up docker-down docker-logs deps lint fmt vet
+.PHONY: build run test clean migrate-up migrate-down migrate-status sqlc-generate docker-up docker-down docker-logs deps lint fmt vet generate-keys
 
 BINARY_NAME=api
 MAIN_PATH=./cmd/api
@@ -44,6 +44,16 @@ migrate-status:
 migrate-create:
 	@read -p "Enter migration name: " name; \
 	goose -dir db/migrations create $$name sql
+
+generate-keys:
+	@./scripts/generate_keys.sh keys
+	@echo "Generating refresh key pair..."
+	@./scripts/generate_keys.sh keys/refresh
+	@mv keys/refresh/private.pem keys/refresh_private.pem
+	@mv keys/refresh/public.pem keys/refresh_public.pem
+	@rmdir keys/refresh
+	@mv keys/private.pem keys/access_private.pem
+	@mv keys/public.pem keys/access_public.pem
 
 sqlc-generate:
 	sqlc generate

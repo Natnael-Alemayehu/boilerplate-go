@@ -58,12 +58,17 @@ func main() {
 	refreshTokenRepo := repository.NewRefreshTokenRepository(redisClient)
 	rateLimitRepo := repository.NewRateLimitRepository(redisClient)
 
-	jwtManager := jwt.NewManager(
-		cfg.JWT.AccessSecret,
-		cfg.JWT.RefreshSecret,
+	jwtManager, err := jwt.NewManagerFromFiles(
+		cfg.JWT.AccessPrivateKeyPath,
+		cfg.JWT.AccessPublicKeyPath,
+		cfg.JWT.RefreshPrivateKeyPath,
+		cfg.JWT.RefreshPublicKeyPath,
 		cfg.JWT.AccessTTL,
 		cfg.JWT.RefreshTTL,
 	)
+	if err != nil {
+		log.Fatalf("Failed to initialize JWT manager: %v", err)
+	}
 
 	passwordHasher := password.NewHasher(password.Config{
 		Memory:      cfg.Argon2.Memory,

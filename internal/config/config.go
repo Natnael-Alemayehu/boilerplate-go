@@ -19,10 +19,12 @@ type Config struct {
 }
 
 type JWTConfig struct {
-	AccessSecret  string
-	RefreshSecret string
-	AccessTTL     time.Duration
-	RefreshTTL    time.Duration
+	AccessPrivateKeyPath  string
+	AccessPublicKeyPath   string
+	RefreshPrivateKeyPath string
+	RefreshPublicKeyPath  string
+	AccessTTL             time.Duration
+	RefreshTTL            time.Duration
 }
 
 type Argon2Config struct {
@@ -47,10 +49,12 @@ func Load() (*Config, error) {
 		DatabaseURL: os.Getenv("DATABASE_URL"),
 		RedisURL:    os.Getenv("REDIS_URL"),
 		JWT: JWTConfig{
-			AccessSecret:  getEnv("JWT_ACCESS_SECRET", "default-access-secret-change-in-production"),
-			RefreshSecret: getEnv("JWT_REFRESH_SECRET", "default-refresh-secret-change-in-production"),
-			AccessTTL:     parseDuration(getEnv("JWT_ACCESS_TTL", "15m"), 15*time.Minute),
-			RefreshTTL:    parseDuration(getEnv("JWT_REFRESH_TTL", "168h"), 168*time.Hour),
+			AccessPrivateKeyPath:  getEnv("JWT_ACCESS_PRIVATE_KEY_PATH", "keys/access_private.pem"),
+			AccessPublicKeyPath:   getEnv("JWT_ACCESS_PUBLIC_KEY_PATH", "keys/access_public.pem"),
+			RefreshPrivateKeyPath: getEnv("JWT_REFRESH_PRIVATE_KEY_PATH", "keys/refresh_private.pem"),
+			RefreshPublicKeyPath:  getEnv("JWT_REFRESH_PUBLIC_KEY_PATH", "keys/refresh_public.pem"),
+			AccessTTL:             parseDuration(getEnv("JWT_ACCESS_TTL", "15m"), 15*time.Minute),
+			RefreshTTL:            parseDuration(getEnv("JWT_REFRESH_TTL", "168h"), 168*time.Hour),
 		},
 		Argon2: Argon2Config{
 			Memory:      parseUint32(getEnv("ARGON2_MEMORY", "65536"), 65536),

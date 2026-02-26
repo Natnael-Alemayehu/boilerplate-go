@@ -1,6 +1,7 @@
 package jwt
 
 import (
+	"crypto/rsa"
 	"fmt"
 	"strconv"
 	"time"
@@ -24,19 +25,37 @@ const (
 )
 
 type Manager struct {
-	accessSecret  []byte
-	refreshSecret []byte
-	accessTTL     time.Duration
-	refreshTTL    time.Duration
+	accessPrivateKey  *rsa.PrivateKey
+	accessPublicKey   *rsa.PublicKey
+	refreshPrivateKey *rsa.PrivateKey
+	refreshPublicKey  *rsa.PublicKey
+	accessTTL         time.Duration
+	refreshTTL        time.Duration
 }
 
-func NewManager(accessSecret, refreshSecret string, accessTTL, refreshTTL time.Duration) *Manager {
+func NewManager(accessKeyPair, refreshTokenPair *KeyPair, accessTTL, refreshTTL time.Duration) *Manager {
 	return &Manager{
-		accessSecret:  []byte(accessSecret),
-		refreshSecret: []byte(refreshSecret),
-		accessTTL:     accessTTL,
-		refreshTTL:    refreshTTL,
+		accessPrivateKey:  accessKeyPair.PrivateKey,
+		accessPublicKey:   accessKeyPair.PublicKey,
+		refreshPrivateKey: refreshTokenPair.PrivateKey,
+		refreshPublicKey:  refreshTokenPair.PublicKey,
+		accessTTL:         accessTTL,
+		refreshTTL:        refreshTTL,
 	}
+}
+
+func NewManagerFromFiles(accessPrivateKeyPath, accessPublicKeyPath, refreshPrivateKeyPath, refreshPublicKeyPath string, accessTTL, refreshTTL time.Duration) (*Manager, error) {
+	accessKeyPair, err := LoadKeyPair(accessPrivateKeyPath, accessPublicKeyPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load access key pair: %w", err)
+	}
+
+	refreshKeyPair, err := LoadKeyPair(refreshPrivateKeyPath, refreshPublicKeyPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load refresh key pair: %w", err)
+	}
+
+	return NewManager(accessKeyPair, refreshKeyPair, accessTTL, refreshTTL), nil
 }
 
 func (m *Manager) GenerateAccessToken(userID uuid.UUID, email, role string) (string, error) {
@@ -54,8 +73,8 @@ func (m *Manager) GenerateAccessToken(userID uuid.UUID, email, role string) (str
 		},
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(m.accessSecret)
+	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
+	return token.SignedString(m.accessPrivateKey)
 }
 
 func (m *Manager) GenerateRefreshToken(userID uuid.UUID) (string, string, error) {
@@ -69,8 +88,8 @@ func (m *Manager) GenerateRefreshToken(userID uuid.UUID) (string, string, error)
 		Issuer:    "go-boilerplate",
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	signed, err := token.SignedString(m.refreshSecret)
+	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
+	signed, err := token.SignedString(m.refreshPrivateKey)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to sign refresh token: %w", err)
 	}
@@ -80,10 +99,10 @@ func (m *Manager) GenerateRefreshToken(userID uuid.UUID) (string, string, error)
 
 func (m *Manager) ValidateAccessToken(tokenString string) (*Claims, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
-		return m.accessSecret, nil
+		return m.accessPublicKey, nil
 	})
 
 	if err != nil {
@@ -100,10 +119,10 @@ func (m *Manager) ValidateAccessToken(tokenString string) (*Claims, error) {
 
 func (m *Manager) ValidateRefreshToken(tokenString string) (uuid.UUID, string, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &jwt.RegisteredClaims{}, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
-		return m.refreshSecret, nil
+		return m.refreshPublicKey, nil
 	})
 
 	if err != nil {
@@ -121,6 +140,14 @@ func (m *Manager) ValidateRefreshToken(tokenString string) (uuid.UUID, string, e
 	}
 
 	return userID, claims.ID, nil
+}
+
+func (m *Manager) GetAccessPublicKey() *rsa.PublicKey {
+	return m.accessPublicKey
+}
+
+func (m *Manager) GetRefreshPublicKey() *rsa.PublicKey {
+	return m.refreshPublicKey
 }
 
 func ParseDuration(s string) (time.Duration, error) {

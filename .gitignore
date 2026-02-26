@@ -1,0 +1,13 @@
+bin/
+keys/
+*.pem
+
+.env
+coverage.out
+
+.idea/
+.vscode/
+*.swp
+*.swo
+
+.DS_Store

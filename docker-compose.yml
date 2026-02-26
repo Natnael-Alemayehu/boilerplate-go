@@ -39,9 +39,13 @@ services:
     environment:
       DATABASE_URL: postgres://postgres:postgres@postgres:5432/app?sslmode=disable
       REDIS_URL: redis://redis:6379/0
-      JWT_ACCESS_SECRET: your-access-secret-change-in-production
-      JWT_REFRESH_SECRET: your-refresh-secret-change-in-production
+      JWT_ACCESS_PRIVATE_KEY_PATH: /app/keys/access_private.pem
+      JWT_ACCESS_PUBLIC_KEY_PATH: /app/keys/access_public.pem
+      JWT_REFRESH_PRIVATE_KEY_PATH: /app/keys/refresh_private.pem
+      JWT_REFRESH_PUBLIC_KEY_PATH: /app/keys/refresh_public.pem
       ENVIRONMENT: development
+    volumes:
+      - ./keys:/app/keys:ro
     depends_on:
       postgres:
         condition: service_healthy
