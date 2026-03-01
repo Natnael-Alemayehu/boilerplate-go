@@ -85,7 +85,19 @@ func main() {
 
 	ctx := context.Background()
 
-	pool, err := pgxpool.New(ctx, cfg.DatabaseURL)
+	poolConfig, err := pgxpool.ParseConfig(cfg.DatabaseURL)
+	if err != nil {
+		appLogger.Error("Failed to parse database URL", "error", err)
+		os.Exit(1)
+	}
+
+	poolConfig.MaxConns = 25
+	poolConfig.MinConns = 5
+	poolConfig.MaxConnLifetime = time.Hour
+	poolConfig.MaxConnIdleTime = 30 * time.Minute
+	poolConfig.HealthCheckPeriod = 1 * time.Minute
+
+	pool, err := pgxpool.NewWithConfig(ctx, poolConfig)
 	if err != nil {
 		appLogger.Error("Failed to connect to database", "error", err)
 		os.Exit(1)
@@ -96,6 +108,14 @@ func main() {
 		appLogger.Error("Failed to ping database", "error", err)
 		os.Exit(1)
 	}
+
+	appLogger.Info("Database connection pool configured",
+		"max_conns", 25,
+		"min_conns", 5,
+		"max_conn_lifetime", time.Hour,
+		"max_conn_idle_time", 30*time.Minute,
+		"health_check_period", time.Minute,
+	)
 
 	if err := runMigrations(cfg.DatabaseURL); err != nil {
 		appLogger.Error("Failed to run migrations", "error", err)
@@ -112,10 +132,14 @@ func main() {
 		os.Exit(1)
 	}
 
+	appLogger.Info("Redis connection established", "addr", cfg.RedisURL)
+
 	userRepo := repository.NewUserRepository(pool)
 	noteRepo := repository.NewNoteRepository(pool)
-	refreshTokenRepo := repository.NewRefreshTokenRepository(redisClient)
-	rateLimitRepo := repository.NewRateLimitRepository(redisClient)
+	refreshTokenRepo := repository.NewCircuitBreakerRefreshTokenRepository(redisClient)
+	rateLimitRepo := repository.NewCircuitBreakerRateLimitRepository(redisClient)
+
+	appLogger.Info("Circuit breakers enabled for Redis repositories")
 
 	jwtManager, err := jwt.NewManagerFromFiles(
 		cfg.JWT.AccessPrivateKeyPath,
