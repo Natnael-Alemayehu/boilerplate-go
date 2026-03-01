@@ -71,7 +71,7 @@ func RequestLogger(logger *Logger) func(next http.Handler) http.Handler {
 			}
 
 			if len(requestBody) > 0 && len(requestBody) < 1024 {
-				var jsonBody map[string]interface{}
+				var jsonBody map[string]any
 				if err := json.Unmarshal(requestBody, &jsonBody); err == nil {
 					if _, ok := jsonBody["password"]; ok {
 						jsonBody["password"] = "[REDACTED]"
@@ -81,7 +81,7 @@ func RequestLogger(logger *Logger) func(next http.Handler) http.Handler {
 			}
 
 			if rw.statusCode >= 400 && rw.body.Len() > 0 && rw.body.Len() < 1024 {
-				var jsonBody map[string]interface{}
+				var jsonBody map[string]any
 				if err := json.Unmarshal(rw.body.Bytes(), &jsonBody); err == nil {
 					logFields = append(logFields, "response_body", jsonBody)
 				}
