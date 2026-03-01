@@ -3,7 +3,8 @@
 	sqlc-generate swagger generate-keys \
 	docker-dev-up docker-dev-down docker-dev-logs docker-dev-build \
 	docker-prod-up docker-prod-down docker-prod-logs docker-prod-build \
-	redis-cli psql air dev local all
+	redis-cli psql air dev local all \
+	mocks test-unit test-integration
 
 BINARY_NAME=api
 MAIN_PATH=./cmd/api
@@ -20,6 +21,12 @@ run:
 
 test:
 	go test -v -race -coverprofile=coverage.out ./...
+
+test-unit: ## Run unit tests only (short tests without integration)
+	go test -v -short -race -coverprofile=coverage.out ./...
+
+test-integration: ## Run integration tests (requires Docker)
+	go test -v -run Integration -race -coverprofile=coverage.out ./...
 
 test-coverage: test
 	go tool cover -html=coverage.out
@@ -76,6 +83,9 @@ sqlc-generate:
 
 swagger:
 	swag init -g cmd/api/main.go -o ./docs --parseInternal --parseDependency --parseDepth 2
+
+mocks: ## Generate mocks for testing
+	go generate ./internal/service/...
 
 # ==================== Development (with Air locally) ====================
 
