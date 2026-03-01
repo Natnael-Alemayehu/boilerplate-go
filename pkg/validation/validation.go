@@ -82,7 +82,7 @@ func FormatErrors(err error) ValidationErrors {
 	return errors
 }
 
-func Validate(s interface{}) ValidationErrors {
+func Validate(s any) ValidationErrors {
 	err := Get().Struct(s)
 	if err == nil {
 		return nil
@@ -90,6 +90,6 @@ func Validate(s interface{}) ValidationErrors {
 	return FormatErrors(err)
 }
 
-func Var(field interface{}, tag string) error {
+func Var(field any, tag string) error {
 	return validate.Var(field, tag)
 }

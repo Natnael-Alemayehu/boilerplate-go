@@ -11,7 +11,7 @@ import (
 	apperrors "github.com/nate/go-boilerplate/internal/errors"
 )
 
-func decodeJSON(r *http.Request, v interface{}) error {
+func decodeJSON(r *http.Request, v any) error {
 	if err := json.NewDecoder(r.Body).Decode(v); err != nil {
 		return apperrors.BadRequest("invalid JSON body")
 	}

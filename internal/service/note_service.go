@@ -9,6 +9,8 @@ import (
 	"github.com/nate/go-boilerplate/internal/repository"
 )
 
+var _ NoteManager = (*NoteService)(nil)
+
 type NoteService struct {
 	noteRepo repository.NoteRepository
 }

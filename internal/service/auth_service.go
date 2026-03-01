@@ -12,6 +12,8 @@ import (
 	"github.com/nate/go-boilerplate/pkg/password"
 )
 
+var _ Authenticator = (*AuthService)(nil)
+
 type AuthService struct {
 	userRepo         repository.UserRepository
 	refreshTokenRepo repository.RefreshTokenRepository

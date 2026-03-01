@@ -86,6 +86,7 @@ swagger:
 
 mocks: ## Generate mocks for testing
 	go generate ./internal/service/...
+	go generate ./internal/repository/...
 
 # ==================== Development (with Air locally) ====================
 

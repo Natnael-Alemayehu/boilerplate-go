@@ -13,7 +13,7 @@ type ErrorResponse struct {
 	Message string `json:"message"`
 }
 
-func JSON(w http.ResponseWriter, status int, v interface{}) {
+func JSON(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	json.NewEncoder(w).Encode(v)

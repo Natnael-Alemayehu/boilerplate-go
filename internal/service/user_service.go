@@ -9,6 +9,8 @@ import (
 	"github.com/nate/go-boilerplate/internal/repository"
 )
 
+var _ UserManager = (*UserService)(nil)
+
 type UserService struct {
 	userRepo repository.UserRepository
 }
