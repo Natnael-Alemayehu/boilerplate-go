@@ -27,7 +27,7 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -43,6 +43,7 @@ import (
 	"github.com/nate/go-boilerplate/internal/repository"
 	"github.com/nate/go-boilerplate/internal/service"
 	"github.com/nate/go-boilerplate/pkg/jwt"
+	"github.com/nate/go-boilerplate/pkg/logger"
 	"github.com/nate/go-boilerplate/pkg/password"
 	"github.com/nate/go-boilerplate/pkg/validation"
 	"github.com/pressly/goose/v3"
@@ -70,8 +71,15 @@ import (
 func main() {
 	cfg, err := config.Load()
 	if err != nil {
-		log.Fatalf("Failed to load config: %v", err)
+		slog.Error("Failed to load config", "error", err)
+		os.Exit(1)
 	}
+
+	appLogger := logger.New(logger.Config{
+		Format: cfg.Logger.Format,
+		Level:  parseLogLevel(cfg.Logger.Level),
+	})
+	logger.SetDefault(appLogger)
 
 	validation.Init()
 
@@ -79,16 +87,19 @@ func main() {
 
 	pool, err := pgxpool.New(ctx, cfg.DatabaseURL)
 	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
+		appLogger.Error("Failed to connect to database", "error", err)
+		os.Exit(1)
 	}
 	defer pool.Close()
 
 	if err := pool.Ping(ctx); err != nil {
-		log.Fatalf("Failed to ping database: %v", err)
+		appLogger.Error("Failed to ping database", "error", err)
+		os.Exit(1)
 	}
 
 	if err := runMigrations(cfg.DatabaseURL); err != nil {
-		log.Fatalf("Failed to run migrations: %v", err)
+		appLogger.Error("Failed to run migrations", "error", err)
+		os.Exit(1)
 	}
 
 	redisClient := redis.NewClient(&redis.Options{
@@ -97,7 +108,8 @@ func main() {
 	defer redisClient.Close()
 
 	if err := redisClient.Ping(ctx).Err(); err != nil {
-		log.Fatalf("Failed to connect to Redis: %v", err)
+		appLogger.Error("Failed to connect to Redis", "error", err)
+		os.Exit(1)
 	}
 
 	userRepo := repository.NewUserRepository(pool)
@@ -114,7 +126,8 @@ func main() {
 		cfg.JWT.RefreshTTL,
 	)
 	if err != nil {
-		log.Fatalf("Failed to initialize JWT manager: %v", err)
+		appLogger.Error("Failed to initialize JWT manager", "error", err)
+		os.Exit(1)
 	}
 
 	passwordHasher := password.NewHasher(password.Config{
@@ -131,7 +144,7 @@ func main() {
 
 	rateLimiter := httpmiddleware.NewRateLimiter(rateLimitRepo, cfg.RateLimit.Requests, int64(cfg.RateLimit.Window.Seconds()))
 
-	router := apphttp.NewRouter(authService, userService, noteService, jwtManager, rateLimiter, pool, redisClient)
+	router := apphttp.NewRouter(authService, userService, noteService, jwtManager, rateLimiter, pool, redisClient, appLogger)
 
 	srv := &http.Server{
 		Addr:         ":" + cfg.Port,
@@ -142,9 +155,10 @@ func main() {
 	}
 
 	go func() {
-		log.Printf("Starting server on port %s", cfg.Port)
+		appLogger.Info("Starting server", "port", cfg.Port, "environment", cfg.Environment)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("Server error: %v", err)
+			appLogger.Error("Server error", "error", err)
+			os.Exit(1)
 		}
 	}()
 
@@ -152,16 +166,17 @@ func main() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
-	log.Println("Shutting down server...")
+	appLogger.Info("Shutting down server...")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	if err := srv.Shutdown(ctx); err != nil {
-		log.Fatalf("Server forced to shutdown: %v", err)
+		appLogger.Error("Server forced to shutdown", "error", err)
+		os.Exit(1)
 	}
 
-	log.Println("Server exited")
+	appLogger.Info("Server exited")
 }
 
 func runMigrations(databaseURL string) error {
@@ -180,4 +195,19 @@ func runMigrations(databaseURL string) error {
 	}
 
 	return nil
+}
+
+func parseLogLevel(level string) slog.Level {
+	switch level {
+	case "debug":
+		return slog.LevelDebug
+	case "info":
+		return slog.LevelInfo
+	case "warn":
+		return slog.LevelWarn
+	case "error":
+		return slog.LevelError
+	default:
+		return slog.LevelInfo
+	}
 }

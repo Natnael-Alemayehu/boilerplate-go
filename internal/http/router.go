@@ -13,6 +13,7 @@ import (
 	httpmiddleware "github.com/nate/go-boilerplate/internal/http/middleware"
 	"github.com/nate/go-boilerplate/internal/service"
 	"github.com/nate/go-boilerplate/pkg/jwt"
+	"github.com/nate/go-boilerplate/pkg/logger"
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
@@ -28,13 +29,14 @@ func NewRouter(
 	rateLimiter *httpmiddleware.RateLimiter,
 	db *pgxpool.Pool,
 	redisClient redis.Cmdable,
+	appLogger *logger.Logger,
 ) *Router {
 	r := chi.NewRouter()
 
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
-	r.Use(httpmiddleware.Logger)
-	r.Use(httpmiddleware.Recoverer)
+	r.Use(logger.RequestLogger(appLogger))
+	r.Use(middleware.Recoverer)
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},

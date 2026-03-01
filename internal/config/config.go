@@ -17,6 +17,7 @@ type Config struct {
 	JWT         JWTConfig
 	Argon2      Argon2Config
 	RateLimit   RateLimitConfig
+	Logger      LoggerConfig
 }
 
 type JWTConfig struct {
@@ -39,6 +40,11 @@ type Argon2Config struct {
 type RateLimitConfig struct {
 	Requests int
 	Window   time.Duration
+}
+
+type LoggerConfig struct {
+	Format string
+	Level  string
 }
 
 func Load() (*Config, error) {
@@ -69,6 +75,10 @@ func Load() (*Config, error) {
 		RateLimit: RateLimitConfig{
 			Requests: parseInt(getEnv("RATE_LIMIT_REQUESTS", "100"), 100),
 			Window:   parseDuration(getEnv("RATE_LIMIT_WINDOW", "1m"), time.Minute),
+		},
+		Logger: LoggerConfig{
+			Format: getEnv("LOG_FORMAT", "text"),
+			Level:  getEnv("LOG_LEVEL", "info"),
 		},
 	}
 
