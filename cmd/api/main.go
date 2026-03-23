@@ -55,7 +55,7 @@ import (
 // @description Features include JWT authentication, rate limiting, soft deletes, and Redis-based token storage.
 
 // @contact.name API Support
-// @contact.url https://github.com/nate/go-boilerplate
+// @contact.url https://github.com/natnael-alemayehu/go-boilerplate
 // @contact.email support@example.com
 
 // @license.name MIT
